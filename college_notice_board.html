@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campus Notice Board</title>
+  <style>
+    :root {
+      --navy: #172554; --blue: #3157c8; --ink: #1f2937; --muted: #64748b;
+      --line: #e5eaf2; --paper: #ffffff; --bg: #f4f6fb; --gold: #f5b942;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Inter, "Segoe UI", Arial, sans-serif; background: var(--bg); color: var(--ink); }
+    header { background: linear-gradient(120deg, #172554, #3157c8); color: white; padding: 28px 22px 34px; }
+    .header-inner, main { width: min(1080px, calc(100% - 36px)); margin: auto; }
+    .brand { display: flex; align-items: center; gap: 13px; }
+    .logo { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 13px; background: rgba(255,255,255,.15); font-size: 24px; }
+    h1 { font-size: clamp(23px, 4vw, 31px); margin: 0; letter-spacing: -.5px; }
+    .subtitle { color: #dbeafe; margin: 5px 0 0; font-size: 14px; }
+    .header-note { margin-top: 25px; color: #e7edff; font-size: 14px; }
+    main { padding: 26px 0 50px; }
+    .toolbar { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 20px; flex-wrap: wrap; }
+    .toolbar h2 { margin: 0; font-size: 20px; }
+    .count { color: var(--muted); font-size: 13px; margin-top: 4px; }
+    button, input, select, textarea { font: inherit; }
+    .primary { border: 0; border-radius: 10px; background: var(--blue); color: white; padding: 11px 16px; font-weight: 650; cursor: pointer; box-shadow: 0 4px 10px #3157c82b; }
+    .primary:hover { background: #2547ad; }
+    .filters { display: grid; grid-template-columns: minmax(180px, 1fr) 190px; gap: 11px; margin-bottom: 20px; }
+    .field { width: 100%; border: 1px solid var(--line); background: white; color: var(--ink); border-radius: 10px; padding: 11px 12px; outline: none; }
+    .field:focus { border-color: #7893ed; box-shadow: 0 0 0 3px #3157c81a; }
+    .notices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
+    .notice { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 18px; box-shadow: 0 5px 18px #17255408; position: relative; }
+    .notice-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+    .tag { border-radius: 30px; padding: 5px 9px; font-size: 11px; font-weight: 750; letter-spacing: .3px; text-transform: uppercase; background: #eaf0ff; color: #3157c8; }
+    .tag.Events { background: #e9f8ef; color: #187344; }
+    .tag.Examinations { background: #fff2df; color: #a65b00; }
+    .tag.Holidays { background: #f3eaff; color: #7541a8; }
+    .tag.General { background: #eef1f5; color: #526071; }
+    .date { color: var(--muted); font-size: 12px; }
+    .notice h3 { font-size: 17px; margin: 0 0 8px; line-height: 1.35; }
+    .notice p { color: #596579; font-size: 14px; line-height: 1.6; margin: 0 0 15px; white-space: pre-wrap; }
+    .notice-foot { border-top: 1px solid #edf0f5; padding-top: 11px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .author { font-size: 12px; color: var(--muted); }
+    .delete { border: 0; background: transparent; color: #9b4050; cursor: pointer; font-size: 12px; padding: 5px 7px; border-radius: 6px; }
+    .delete:hover { background: #fff0f1; }
+    .empty { grid-column: 1/-1; text-align: center; background: white; border: 1px dashed #cbd5e1; padding: 42px 20px; border-radius: 14px; color: var(--muted); }
+    .empty strong { display: block; color: var(--ink); margin-bottom: 6px; }
+    .modal-backdrop { display: none; position: fixed; inset: 0; background: #10182799; padding: 18px; z-index: 5; align-items: center; justify-content: center; }
+    .modal-backdrop.open { display: flex; }
+    .modal { width: min(500px, 100%); max-height: 92vh; overflow: auto; background: white; border-radius: 16px; padding: 23px; box-shadow: 0 20px 60px #0003; }
+    .modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+    .modal h2 { font-size: 20px; margin: 0; }
+    .close { border: 0; background: #f1f4f9; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; font-size: 19px; }
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-size: 13px; font-weight: 650; margin-bottom: 6px; }
+    textarea.field { min-height: 115px; resize: vertical; }
+    .form-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 18px; }
+    .secondary { border: 1px solid var(--line); background: white; border-radius: 10px; padding: 10px 14px; cursor: pointer; }
+    footer { text-align: center; color: #8792a4; font-size: 12px; padding: 0 15px 24px; }
+    @media (max-width: 650px) { .notices { grid-template-columns: 1fr; } .filters { grid-template-columns: 1fr; } header { padding-top: 22px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">🎓</div>
+        <div><h1>Campus Notice Board</h1><p class="subtitle">Your college updates, all in one place</p></div>
+      </div>
+      <p class="header-note">Stay informed about examinations, events, holidays and important announcements.</p>
+    </div>
+  </header>
+
+  <main>
+    <div class="toolbar">
+      <div><h2>Latest Notices</h2><div class="count" id="noticeCount">0 notices</div></div>
+      <button class="primary" id="addBtn">＋ Add Notice</button>
+    </div>
+    <div class="filters">
+      <input class="field" id="searchInput" type="search" placeholder="Search notices by title or details…" aria-label="Search notices">
+      <select class="field" id="categoryFilter" aria-label="Filter by category">
+        <option value="All">All categories</option>
+        <option>General</option><option>Events</option><option>Examinations</option><option>Holidays</option>
+      </select>
+    </div>
+    <section class="notices" id="noticeList" aria-live="polite"></section>
+  </main>
+  <footer>Campus Notice Board · Notices are saved in this browser on this device.</footer>
+
+  <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal">
+      <div class="modal-head"><h2 id="modalTitle">Add a Notice</h2><button class="close" id="closeBtn" aria-label="Close">×</button></div>
+      <form id="noticeForm">
+        <div class="form-group"><label for="title">Notice title *</label><input class="field" id="title" maxlength="90" required placeholder="e.g. Mid-semester examination timetable"></div>
+        <div class="form-group"><label for="category">Category</label><select class="field" id="category"><option>General</option><option>Events</option><option>Examinations</option><option>Holidays</option></select></div>
+        <div class="form-group"><label for="details">Details *</label><textarea class="field" id="details" maxlength="1200" required placeholder="Write the announcement and any important instructions…"></textarea></div>
+        <div class="form-group"><label for="author">Posted by</label><input class="field" id="author" maxlength="50" placeholder="e.g. College Administration"></div>
+        <div class="form-actions"><button type="button" class="secondary" id="cancelBtn">Cancel</button><button class="primary" type="submit">Publish Notice</button></div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = "campus-notice-board-v1";
+    const starterNotices = [
+      { id: 1, title: "Welcome to the Campus Notice Board", category: "General", details: "Important college announcements will appear here. Use the “Add Notice” button to publish a new notice.", author: "College Administration", date: new Date().toISOString() },
+      { id: 2, title: "Library Timings", category: "General", details: "The central library is open from 9:00 AM to 6:00 PM on working days. Please carry your college ID card.", author: "Library Department", date: new Date(Date.now() - 86400000).toISOString() },
+      { id: 3, title: "Upcoming Campus Activities", category: "Events", details: "Students are encouraged to participate in upcoming club activities. Contact your department representative for details.", author: "Student Activities Cell", date: new Date(Date.now() - 2 * 86400000).toISOString() }
+    ];
+    let notices;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      notices = saved ? JSON.parse(saved) : starterNotices;
+      if (!Array.isArray(notices)) notices = starterNotices;
+    } catch { notices = starterNotices; }
+
+    const list = document.getElementById("noticeList");
+    const search = document.getElementById("searchInput");
+    const filter = document.getElementById("categoryFilter");
+    const backdrop = document.getElementById("modalBackdrop");
+    const form = document.getElementById("noticeForm");
+
+    function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(notices)); }
+    function formatDate(value) {
+      return new Date(value).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+    }
+    function escapeHTML(value) {
+      return String(value).replace(/[&<>"']/g, char => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" })[char]);
+    }
+    function render() {
+      const term = search.value.trim().toLowerCase();
+      const category = filter.value;
+      const visible = notices.filter(n =>
+        (category === "All" || n.category === category) &&
+        (n.title.toLowerCase().includes(term) || n.details.toLowerCase().includes(term) || (n.author || "").toLowerCase().includes(term))
+      ).sort((a,b) => new Date(b.date) - new Date(a.date));
+      document.getElementById("noticeCount").textContent = `${visible.length} ${visible.length === 1 ? "notice" : "notices"}`;
+      if (!visible.length) {
+        list.innerHTML = '<div class="empty"><strong>No notices found</strong>Try another search or add a new notice.</div>';
+        return;
+      }
+      list.innerHTML = visible.map(n => `
+        <article class="notice">
+          <div class="notice-top"><span class="tag ${escapeHTML(n.category)}">${escapeHTML(n.category)}</span><span class="date">${formatDate(n.date)}</span></div>
+          <h3>${escapeHTML(n.title)}</h3>
+          <p>${escapeHTML(n.details)}</p>
+          <div class="notice-foot"><span class="author">Posted by ${escapeHTML(n.author || "College Administration")}</span><button class="delete" data-delete="${n.id}" aria-label="Delete ${escapeHTML(n.title)}">Delete</button></div>
+        </article>`).join("");
+    }
+    function openModal() { backdrop.classList.add("open"); document.getElementById("title").focus(); }
+    function closeModal() { backdrop.classList.remove("open"); form.reset(); }
+    document.getElementById("addBtn").addEventListener("click", openModal);
+    document.getElementById("closeBtn").addEventListener("click", closeModal);
+    document.getElementById("cancelBtn").addEventListener("click", closeModal);
+    backdrop.addEventListener("click", e => { if (e.target === backdrop) closeModal(); });
+    document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+    search.addEventListener("input", render);
+    filter.addEventListener("change", render);
+    form.addEventListener("submit", e => {
+      e.preventDefault();
+      notices.push({
+        id: Date.now(), title: document.getElementById("title").value.trim(),
+        category: document.getElementById("category").value,
+        details: document.getElementById("details").value.trim(),
+        author: document.getElementById("author").value.trim() || "College Administration",
+        date: new Date().toISOString()
+      });
+      save(); render(); closeModal();
+    });
+    list.addEventListener("click", e => {
+      const button = e.target.closest("[data-delete]");
+      if (!button) return;
+      const id = Number(button.dataset.delete);
+      if (confirm("Delete this notice?")) {
+        notices = notices.filter(n => n.id !== id);
+        save(); render();
+      }
+    });
+    render();
+  </script>
+</body>
+</html>
